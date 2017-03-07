@@ -200,7 +200,7 @@ func (r *RedisClient) GetShareScore(shareDiff int64, netDiff int64) int64 {
 
 	    result, _ := cmds[0].(*redis.StringCmd).Result()
 	    roundShares, _ := strconv.ParseInt(result, 10, 64)
-	    ratio := math.Exp(float64(roundShares) / float64(netDiff))
+	    ratio := math.Exp(2 * float64(roundShares) / float64(netDiff))
 
 	    return int64(ratio * float64(shareDiff))
 	}
