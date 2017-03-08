@@ -182,7 +182,7 @@ func (r *RedisClient) checkPoWExist(height uint64, params []string) (bool, error
 	return val == 0, err
 }
 
-func (r *RedisClient) GetShareScore(shareDiff int64, netDiff int64) int64 {
+func (r *RedisClient) GetShareScore(shareDiff int64, shareBaseDiff int64, netDiff int64) int64 {
 	tx := r.client.Multi()
 	defer tx.Close()
 
@@ -201,12 +201,11 @@ func (r *RedisClient) GetShareScore(shareDiff int64, netDiff int64) int64 {
 	    result, _ := cmds[0].(*redis.StringCmd).Result()
 	    roundShares, _ := strconv.ParseInt(result, 10, 64)
 	    ratio := math.Exp(2 * float64(roundShares) / float64(netDiff))
-
-	    return int64(ratio * float64(shareDiff))
+	    return int64(ratio * float64(shareDiff) / float64(shareBaseDiff))
 	}
 }
 
-func (r *RedisClient) WriteShare(login, id string, params []string, diff int64, netdiff int64, height uint64, window time.Duration) (bool, error) {
+func (r *RedisClient) WriteShare(login, id string, params []string, diff int64, baseDiff int64, netdiff int64, height uint64, window time.Duration) (bool, error) {
 	exist, err := r.checkPoWExist(height, params)
 	if err != nil {
 		return false, err
@@ -221,7 +220,7 @@ func (r *RedisClient) WriteShare(login, id string, params []string, diff int64, 
 	ms := util.MakeTimestamp()
 	ts := ms / 1000
 
-	score := r.GetShareScore(diff, netdiff)
+	score := r.GetShareScore(diff, baseDiff, netdiff)
 
 	_, err = tx.Exec(func() error {
 		r.writeShare(tx, ms, ts, login, id, diff, score, window)
@@ -232,7 +231,7 @@ func (r *RedisClient) WriteShare(login, id string, params []string, diff int64, 
 	return false, err
 }
 
-func (r *RedisClient) WriteBlock(login, id string, params []string, diff, roundDiff int64, height uint64, window time.Duration) (bool, error) {
+func (r *RedisClient) WriteBlock(login, id string, params []string, diff int64, baseDiff int64, roundDiff int64, height uint64, window time.Duration) (bool, error) {
 	exist, err := r.checkPoWExist(height, params)
 	if err != nil {
 		return false, err
@@ -247,7 +246,7 @@ func (r *RedisClient) WriteBlock(login, id string, params []string, diff, roundD
 	ms := util.MakeTimestamp()
 	ts := ms / 1000
 
-	score := r.GetShareScore(diff, roundDiff)
+	score := r.GetShareScore(diff, baseDiff, roundDiff)
 
 	cmds, err := tx.Exec(func() error {
 		r.writeShare(tx, ms, ts, login, id, diff, score, window)
