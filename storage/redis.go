@@ -192,9 +192,8 @@ func (r *RedisClient) GetShareScore(shareDiff int64, shareBaseDiff int64, netDif
 	})
 
 	if err != nil {
-	    // Fallback to proportional for now
-	    // TODO: panic
-	    return shareDiff
+	    // Looks like it's the first share in a round
+	    return int64(float64(shareDiff) / float64(shareBaseDiff))
 	} else {
 	    // Share weight is calculated as diff * e^(cumulative_diff / network_diff)
 
